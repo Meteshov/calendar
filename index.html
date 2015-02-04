@@ -1,0 +1,59 @@
+<html>
+<head>
+    <link rel="stylesheet" href="css/jquery-ui.css" />
+    <link rel="stylesheet" href="css/style.css" />
+    <style>
+        .drag ul{
+            list-style: none;
+        }
+        .drag ul li{
+            display:block;
+            width: 60px;
+            height: 30px;
+            border: 1px solid black;
+        }
+        div[class*="staff"]{
+            display:inline-block;
+            width:80px;
+            height: 45px;
+            border: 1px solid #f7ff39;
+        }
+        div.target{
+            display:inline-block;
+            width: 25px;
+            height: 10px;
+        }
+        div#container:after{
+            content: "";
+            display: table;
+            clear: both;
+        }
+    </style>
+    <script type="text/javascript" src="js/jquery-1.11.2.js"></script>
+    <script type="text/javascript" src="js/jquery-ui.js"></script>
+    <script type="text/javascript" src="js/moment.min.js"></script>
+    <script type="text/javascript" src="js/calendar.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $('#container').calendar({
+                locale:'ISO'
+            });
+            $('.drag li').draggable();
+        });
+    </script>
+    <title>Plugin</title>
+</head>
+<body>
+    <div id="container"></div>
+    <div class="drop"></div>
+    <div class="drag">
+        <ul>
+            <li id="1" class="take-me">Drag me</li>
+            <li id="2" class="take-me">Drag me</li>
+            <li id="3" class="take-me">Drag me</li>
+            <li id="4" class="take-me">Drag me</li>
+            <li id="5" class="take-me">Drag me</li>
+        </ul>
+    </div>
+</body>
+</html>
