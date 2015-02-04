@@ -9,11 +9,14 @@
     var defaults = {
         locale:'ISO', //date format
         date:'',//date for render
-        defaultView:'week',//view
+        defaultView:'month',//view
         job:{               //job's data
             start:'',
             end:''
         },
+        minStep:'15',
+        dayStart:'6',
+        dayEnd:'20',
         acceptDragClass:'.take-me',//for draggable elements
         buttons:true, // show month week day
         navButtons:true //show next prev btns
@@ -64,7 +67,7 @@
         function calculateBodyWidth(element){
             return $(element).outerWidth();
         }
-        function calculateHeaderCells(moment,view,bodyWidth){
+        function calculateHeaderCell(moment,view,bodyWidth){
 
         }
         //copy options and container
@@ -155,10 +158,10 @@
             return html;
         }
         function _buildBody(date,view){
-            var html = '<div class="c-body"></div>';
+            var html = '';
             switch(view){
                 case 'day' :{
-                    var day = new dayView(date,'ISO');
+                    var day = new dayView(date,'ISO',this._options.dayStart,this._options.dayEnd);
                     html = day.buildDayView();
                     break;
                 }
@@ -176,18 +179,23 @@
             return html;
         }
     }
-    function dayView(date,iso){
+    function dayView(date,iso,start,end){
         this.date = date;
         this.iso = iso;
+        this.start = parseInt(start);
+        this.end = parseInt(end);
         this.buildDayView = _buildDayView;
         this.buildDay = _buildDay;
         function _buildDay(day,pos){ //day as moment() object
             var mom = this.date;
             var html = '<div class="c-day-wrap"><div class="c-day-cells-wrap"><div class="c-day-head"></div>';
-            for(i=0;i<24;i++){
+            console.log(this.start);
+            for(i=this.start;i<=this.end;i++){
+                console.log(i);
                 var current = mom.hour(i).minutes(0).format('YYYY-MM-DD HH:mm');
-                var text = mom.format('HH:mm');
-                html+='<div class="c-day-cell" data-date="'+current+'">'+text+'</div>';
+                var hour = mom.format('HH');
+                var min = mom.format('mm');
+                html+='<div class="c-day-cell" data-date="'+current+'">'+hour+'<sup>'+min+'</sup></div>';
             }
             html+='</div><div class="c-day-empty"></div>';
             return (html+'</div>');
@@ -236,7 +244,7 @@
 
         function _buildMonth(){
             var monthNumber = this.date.month(); //needle month number
-            var fWeek = moment().month(monthNumber).startOf('month').isoWeek();//first week of month
+            /*var fWeek = moment().month(monthNumber).startOf('month').isoWeek();//first week of month
             var lWeek = moment().month(monthNumber).endOf('month').isoWeek();//last week of month
             var html = '<div class="c-month-wrap"><div class="c-month-cells-wrap"><div class="c-month-head"></div>';
             while(fWeek <= lWeek){
@@ -248,7 +256,19 @@
                 fWeek++;
             }
             html+='</div><div class="c-month-empty"></div>';
-            return (html+'</div>');
+            return (html+'</div>');*/
+            var html = '<div class="c-month-wrap"><div class="c-month-cells-wrap"><div class="c-month-head">';
+            var sMonth = moment().month(monthNumber).startOf('month');
+            var eMonth = moment().month(monthNumber).endOf('month');
+            var empty = '<div class="c-month-empty"></div>';
+            var dates = '';
+            while(sMonth.format('YYYY-MM-DD') != eMonth.format('YYYY-MM-DD')){
+                if(dates.length != 0)
+                    dates += '<div class="c-dot">.</div>';
+                dates += '<div class="c-month-cell" data-date="'+sMonth.format('YYYY-MM-DD')+'">'+sMonth.format('DD')+'</div>';
+                sMonth.add(1,'d');
+            }
+            return html + dates + '</div>' + empty + '</div>';
         }
         function _buildView(){
             return this.buildMonth();
@@ -275,13 +295,15 @@
         }
         this.dragStart = function(ev){
            var obj = ev.data;
-           obj.dragStatus = true;
+           /*obj.dragStatus = true;
            obj._width = $('.'+obj.sClass).outerWidth();
-           ev.preventDefault();
+           ev.preventDefault();*/
+            $('.'+obj.sClass).draggable({});
         }
         this.dragEnd = function(ev){
             var obj = ev.data;
-            obj.dragStatus = false;
+            //obj.dragStatus = false;
+            $('.'+obj.sClass).draggable('destroy');
         }
         this.dragging = function(ev){
             var obj = ev.data;
