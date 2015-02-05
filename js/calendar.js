@@ -79,8 +79,8 @@
         this.render = function(view){
             var head = this.buildHead();
             var body = this.buildBody(this.date,view);
-            $(head).appendTo(this._container);
-            $(body).appendTo(this._container);
+            var page = '<div class="c-container">'+head+body+'</div>';
+            $(page).appendTo(this._container);
             $(this._container).find('div[class *= "-empty"]').droppable({
                 greedy:true,
                 accept:this._options.acceptDragClass,

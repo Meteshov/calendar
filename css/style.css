@@ -1,8 +1,13 @@
+/*container*/
+.c-container{
+    display: block;
+    width: 100%;
+}
 /*header*/
 .c-header{
     vertical-align: middle;
     margin-bottom: 20px;
-    width: 60%;
+    width: 100%;
     content: '';
 }
 .c-header:after{
@@ -52,12 +57,12 @@
 /*Views*/
 .c-week-wrap,
 .c-month-wrap{
-    width: 883px;
+    width: 100%;
 }
 .c-week-cells-wrap{
     display: block;
-    width: 2730px;
     height: 50px;
+    width: 100%;
 
 }
 .c-cells-wrap{
