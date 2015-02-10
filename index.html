@@ -14,9 +14,8 @@
         }
         div[class*="staff"]{
             display:inline-block;
-            width:80px;
             height: 45px;
-            border: 1px solid #f7ff39;
+            background-color: #e23523;
         }
         div.target{
             display:inline-block;
@@ -27,6 +26,9 @@
             content: "";
             display: table;
             clear: both;
+        }
+        .ui-resizable{
+            position:absolute !important;
         }
     </style>
     <script type="text/javascript" src="js/jquery-1.11.2.js"></script>
@@ -44,7 +46,7 @@
     <title>Plugin</title>
 </head>
 <body>
-    <div id="container" style="width: 800px"></div>
+    <div id="container" style="width: 833px"></div>
     <div class="drop"></div>
     <div class="drag">
         <ul>

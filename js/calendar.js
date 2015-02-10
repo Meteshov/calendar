@@ -61,14 +61,17 @@
     }
     function timeLine(element,options){
         //functions for calculating views width,cells width,etc
-        function calculateHeaderWidth(element){
+        function getHeaderWidth(element){
             return $(element).outerWidth();
         }
-        function calculateBodyWidth(element){
+        function getBodyWidth(element){
             return $(element).outerWidth();
         }
-        function calculateHeaderCell(moment,view,bodyWidth){
-
+        function calculateViewWidth(bodyWidth,date,view){ //date - moment object
+            var mom = date; //local copy of moment()
+            var daysCount = parseFloat(mom.endOf('month').format('DD'));
+            var cellWidth = Math.round(bodyWidth / daysCount);
+            return cellWidth - 1;
         }
         //copy options and container
         this._container = element;
@@ -81,6 +84,9 @@
             var body = this.buildBody(this.date,view);
             var page = '<div class="c-container">'+head+body+'</div>';
             $(page).appendTo(this._container);
+            var headCellWidth = $(this._container).find('.c-month-cell:first').outerWidth();
+            var headDotWidth = $(this._container).find('.c-dot:first').outerWidth();
+            var wrapOffset = $(this._container).offset();
             $(this._container).find('div[class *= "-empty"]').droppable({
                 greedy:true,
                 accept:this._options.acceptDragClass,
@@ -88,13 +94,27 @@
                     var elem = ui.draggable[0];
                     if( ! $(elem).hasClass('c-mobile-elem')){
                         var sClass = 'staff-'+$(ui.draggable[0]).attr('id');
-                        $('div[class *= "-empty"]').append('<div class="c-mobile-elem '+sClass+'"><div class="c-move-target"></div><div class="c-resize-target"></div></div>');
-                        $('.'+sClass).offset({left:ui.offset.left});
+                        $('div[class *= "-empty"]').append('<div class="c-mobile-elem '+sClass+'" style="width:'+headCellWidth+'" id="'+sClass+'"></div>');
+                        //TODO::Придумать более универсальные методы для подсчета,пока что при ширине в 833пх некорректно работает
+                        var offsetTrue = $('.c-month-cell').filter(function(index){
+                            var off = $(this).offset();
+                            if(Math.abs(off.left - ui.offset.left) < headCellWidth)
+                                return this; }).offset();
+                        $('.'+sClass).offset({left:(offsetTrue.left + wrapOffset.left)});
                         $(elem).remove();
-                        var drag = new dragElem();
-                        drag.init(sClass,ui.offset.left);
-                        var res = new resizeElem();
-                        res.init(sClass);
+                        $('.'+sClass).draggable({
+                            grid:[headCellWidth+headDotWidth,20],
+                            axis:'x',
+                            containment:'parent',
+                            stop:function(event,ui){
+                                //TODO:: Предотвратить Наложения элементов друг на друга
+
+                            }
+                        });
+                        $('.'+sClass).resizable({
+                            grid:[headCellWidth+headDotWidth,0],
+                            maxHeight:45
+                        });
                     }
                 }
             });
@@ -141,7 +161,6 @@
             $(body).appendTo(object._container);
             return false;
         } /** Previous day|week|month **/
-        this.goTo = function(date){} /** Go to chosen date **/
         this.buildHead = _buildHead;
         this.buildBody = _buildBody;
         function _buildHead(){
@@ -241,32 +260,26 @@
         this.iso = iso;
         this.buildMonthView = _buildView;
         this.buildMonth = _buildMonth;
-
         function _buildMonth(){
             var monthNumber = this.date.month(); //needle month number
-            /*var fWeek = moment().month(monthNumber).startOf('month').isoWeek();//first week of month
-            var lWeek = moment().month(monthNumber).endOf('month').isoWeek();//last week of month
-            var html = '<div class="c-month-wrap"><div class="c-month-cells-wrap"><div class="c-month-head"></div>';
-            while(fWeek <= lWeek){
-                var startWeek = moment().isoWeek(fWeek).startOf('isoWeek');
-                var endWeek = moment().isoWeek(fWeek).endOf('isoWeek');
-                var current = startWeek.format('YYYY-MM-DD');
-                var text = startWeek.format('DD.MM')+'-'+endWeek.format('DD.MM');
-                html+='<div class="c-month-cell" data-date="'+current+'">'+text+'</div>';
-                fWeek++;
-            }
-            html+='</div><div class="c-month-empty"></div>';
-            return (html+'</div>');*/
             var html = '<div class="c-month-wrap"><div class="c-month-cells-wrap"><div class="c-month-head">';
             var sMonth = moment().month(monthNumber).startOf('month');
             var eMonth = moment().month(monthNumber).endOf('month');
+            var dayWidth = (0.8/(Math.floor(parseInt(eMonth.format('D'))/2) +1))*100; //width for day cell
+            var dotWidth = (0.2/(Math.floor(parseInt(eMonth.format('D'))/2)))*100;
+            var dotHtml = '<div class="c-dot" style = "width:'+dotWidth+'%">.</div>';
             var empty = '<div class="c-month-empty"></div>';
             var dates = '';
-            while(sMonth.format('YYYY-MM-DD') != eMonth.format('YYYY-MM-DD')){
+            var style = 'width:'+dayWidth+'%';
+            while(sMonth.format('YYYY-MM-DD') <= eMonth.format('YYYY-MM-DD')){
                 if(dates.length != 0)
-                    dates += '<div class="c-dot">.</div>';
-                dates += '<div class="c-month-cell" data-date="'+sMonth.format('YYYY-MM-DD')+'">'+sMonth.format('DD')+'</div>';
-                sMonth.add(1,'d');
+                    dates += dotHtml+'<div class="c-month-cell" style="'+style+'" data-date="'+sMonth.format('YYYY-MM-DD')+'">'+sMonth.format('D')+'</div>';
+                else
+                    dates += '<div class="c-month-cell" style="'+style+'" data-date="'+sMonth.format('YYYY-MM-DD')+'">'+sMonth.format('D')+'</div>';
+                if((parseInt(eMonth.format('D')) - parseInt(sMonth.format('D'))) == 1)
+                    sMonth.add(1,'d');
+                else
+                    sMonth.add(2,'d');
             }
             return html + dates + '</div>' + empty + '</div>';
         }
@@ -274,87 +287,4 @@
             return this.buildMonth();
         }
     }
-    function dragElem(){
-        this.init = function(selectorClass,initOffsetLeft){
-            this.dragStatus = false;
-            this.parentLeft =$('.'+selectorClass).parent().offset();
-            this.parentWidth =$('.'+selectorClass).parent().outerWidth();
-            this.sClass = selectorClass;
-            this.offset = $('.'+selectorClass).offset();
-            this.position = $('.'+selectorClass).position();
-            this._width = $('.'+selectorClass).outerWidth();
-            $('.'+this.sClass).attr('style','position:relative');
-            $('.'+this.sClass).offset({left:initOffsetLeft});
-            this.bindEvents();
-
-        }
-        this.bindEvents = function(){
-            $('.'+this.sClass).find('.c-move-target').bind('mousedown',this,this.dragStart);
-            $('.'+this.sClass).parent().bind('mousemove',this,this.dragging);
-            $('.'+this.sClass).find('.c-move-target').bind('mouseup mouseleave',this,this.dragEnd);
-        }
-        this.dragStart = function(ev){
-           var obj = ev.data;
-           /*obj.dragStatus = true;
-           obj._width = $('.'+obj.sClass).outerWidth();
-           ev.preventDefault();*/
-            $('.'+obj.sClass).draggable({});
-        }
-        this.dragEnd = function(ev){
-            var obj = ev.data;
-            //obj.dragStatus = false;
-            $('.'+obj.sClass).draggable('destroy');
-        }
-        this.dragging = function(ev){
-            var obj = ev.data;
-            if(obj.dragStatus){
-                obj.moveTarget(ev.pageX  - obj.parentLeft.left-obj.offset.left-20);
-            }
-        }
-        this.moveTarget = function(pos){
-            $('.'+this.sClass).offset({left:(pos+this.offset.left)});
-            this.offset = $('.'+this.sClass).offset();
-            this.position = $('.'+this.sClass).position();
-            console.log(this.parentLeft.left);
-        }
-    }
-    function resizeElem(){
-        this.init = function(selector){
-            this.selector = selector;
-            this.offset = $('.'+selector).offset();
-            this._width = $('.'+selector).outerWidth();
-            this.resizeStatus = false;
-            this.parentLeft =$('.'+selector).parent().offset();
-            this.bindEvents();
-        }
-        this.bindEvents = function(){
-            $('.'+this.selector).find('.c-resize-target').bind('mousedown',this,this.resizeStart);
-            $('.'+this.selector).parent().bind('mousemove',this,this.resizing);
-            $('.'+this.selector).find('.c-resize-target').bind('mouseup',this,this.resizeEnd);
-        }
-        this.refreshData = function(){
-            this.offset = $('.'+this.selector).offset();
-            this._width = $('.'+this.selector).outerWidth();
-        }
-        this.resizeStart = function(ev){
-            var obj = ev.data;
-            obj.refreshData();
-            obj.resizeStatus = true;
-            console.log(ev.offsetX);
-        }
-        this.resizeEnd = function(ev){
-            var obj = ev.data;
-            obj.resizeStatus = false;
-        }
-        this.resizing = function(ev){
-            var obj = ev.data;
-            if(obj.resizeStatus){
-                var width = ev.pageX  - obj.parentLeft.left-obj.offset.left+30;
-                obj.changeWidth(width)
-            }
-        }
-        this.changeWidth = function(w){
-            $('.'+this.selector).css('width',w);
-        }
-    }
-})
+});
