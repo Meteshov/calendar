@@ -2,6 +2,7 @@
 .c-container{
     display: block;
     width: 100%;
+    color:white;
 }
 /*header*/
 .c-header{
@@ -69,6 +70,11 @@
     display: inline-block;
     float: left;
 }
+/*.c-month-empty-cell{
+    display: inline-block;
+    height: 55px;
+    line-height: 55px;
+}*/
 .c-month-cell,
 .c-week-cell,
 .c-day-cell{
@@ -98,13 +104,24 @@
     height: 20px;
     line-height: 20px;
 }
-.c-month-empty,
 .c-week-empty,
-.c-day-empty{
-    padding-top: 5px;
+.c-day-empty,
+.c-month-empty{
+    width: 100%;
+    margin:0;
+    padding:0;
     height: 55px;
     background: #c1dbf8;
-    /*margin-left: 2px;*/
+ }
+.c-month-empty-cell{
+    display: inline-block;
+    height: 100%;
+    /*border-bottom: 1px solid black;
+    border-top: 1px solid black;
+    border-left: 1px solid black;*/
+}
+.c-month-empty:last-child{
+    /*border-right: 1px solid black;*/
 }
 /*move and resize targets*/
 .c-mobile-elem{

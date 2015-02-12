@@ -10,10 +10,7 @@
         locale:'ISO', //date format
         date:'',//date for render
         defaultView:'month',//view
-        job:{               //job's data
-            start:'',
-            end:''
-        },
+        work:{},//job's array,include start end title staff's id staff's name
         minStep:'15',
         dayStart:'6',
         dayEnd:'20',
@@ -73,6 +70,14 @@
             var cellWidth = Math.round(bodyWidth / daysCount);
             return cellWidth - 1;
         }
+        function getAllStaffsIds(works){
+            var staffs = [];
+            works.forEach(function(elem){
+                if(staffs.indexOf(elem.staff_id)== -1)
+                    staffs.push(elem.staff_id);
+            });
+            return staffs;
+        }
         //copy options and container
         this._container = element;
         this._options = options;
@@ -85,30 +90,38 @@
             var page = '<div class="c-container">'+head+body+'</div>';
             $(page).appendTo(this._container);
             var headCellWidth = $(this._container).find('.c-month-cell:first').outerWidth();
-            var headDotWidth = $(this._container).find('.c-dot:first').outerWidth();
             var wrapOffset = $(this._container).offset();
-            $(this._container).find('div[class *= "-empty"]').droppable({
+            var staffsTimeSheets = addWorks(this._container,this._options.work);
+            $(staffsTimeSheets).appendTo($(this._container).find('div.c-month-empty'));
+            $(this._container).find('div.c-month-empty').droppable({
                 greedy:true,
                 accept:this._options.acceptDragClass,
                 drop:function(event,ui){
                     var elem = ui.draggable[0];
                     if( ! $(elem).hasClass('c-mobile-elem')){
                         var sClass = 'staff-'+$(ui.draggable[0]).attr('id');
-                        $('div[class *= "-empty"]').append('<div class="c-mobile-elem '+sClass+'" style="width:'+headCellWidth+'" id="'+sClass+'"></div>');
+                        $('.c-month-empty').append('<div class="c-mobile-elem '+sClass+'" style="width:'+headCellWidth+'" id="'+sClass+'"></div>');
                         //TODO::Придумать более универсальные методы для подсчета,пока что при ширине в 833пх некорректно работает
                         var offsetTrue = $('.c-month-cell').filter(function(index){
                             var off = $(this).offset();
                             if(Math.abs(off.left - ui.offset.left) < headCellWidth)
                                 return this; }).offset();
-                        $('.'+sClass).offset({left:(offsetTrue.left + wrapOffset.left)});
+                        $('.'+sClass).offset({left:(offsetTrue.left + wrapOffset.left +1)});
                         $(elem).remove();
                         $('.'+sClass).draggable({
-                            grid:[headCellWidth+headDotWidth,20],
                             axis:'x',
                             containment:'parent',
                             stop:function(event,ui){
+                                var originalWidth = $(ui.helper[0]).outerWidth();
                                 //TODO:: Предотвратить Наложения элементов друг на друга
+                                var offsetTrue = $('.c-month-cell').filter(function(index){
+                                    var off = $(this).offset();
+                                    if(Math.abs(off.left - ui.offset.left) < (headCellWidth/2)+1)
+                                        return this; }).offset();
+                                $(this).offset({left:(offsetTrue.left)});
 
+                            },
+                            drag:function(event,ui){
                             }
                         });
                         $('.'+sClass).resizable({
@@ -265,23 +278,30 @@
             var html = '<div class="c-month-wrap"><div class="c-month-cells-wrap"><div class="c-month-head">';
             var sMonth = moment().month(monthNumber).startOf('month');
             var eMonth = moment().month(monthNumber).endOf('month');
-            var dayWidth = (0.8/(Math.floor(parseInt(eMonth.format('D'))/2) +1))*100; //width for day cell
-            var dotWidth = (0.2/(Math.floor(parseInt(eMonth.format('D'))/2)))*100;
-            var dotHtml = '<div class="c-dot" style = "width:'+dotWidth+'%">.</div>';
-            var empty = '<div class="c-month-empty"></div>';
+            //var dayWidth = (1/(Math.floor(parseInt(eMonth.format('D'))/2) +1))*100; //width for day cell
+            var dayWidth = (1/(Math.floor(parseInt(eMonth.format('D')))))*100;
+            //var dotHtml = '<div class="c-dot" style = "width:'+dotWidth+'%">.</div>';
+            var empty = '<div class="c-month-empty c-staff-default">';
             var dates = '';
             var style = 'width:'+dayWidth+'%';
+            var tmp = 'width:'+(dayWidth)+'%';
+            var start = 1;
             while(sMonth.format('YYYY-MM-DD') <= eMonth.format('YYYY-MM-DD')){
-                if(dates.length != 0)
+                /*if(dates.length != 0)
                     dates += dotHtml+'<div class="c-month-cell" style="'+style+'" data-date="'+sMonth.format('YYYY-MM-DD')+'">'+sMonth.format('D')+'</div>';
                 else
                     dates += '<div class="c-month-cell" style="'+style+'" data-date="'+sMonth.format('YYYY-MM-DD')+'">'+sMonth.format('D')+'</div>';
                 if((parseInt(eMonth.format('D')) - parseInt(sMonth.format('D'))) == 1)
                     sMonth.add(1,'d');
                 else
-                    sMonth.add(2,'d');
+                    sMonth.add(2,'d');*/
+                var text = (start % 2 != 0) ? sMonth.format('D') : '.';
+                dates += '<div class="c-month-cell" style="'+style+'" data-date="'+sMonth.format('YYYY-MM-DD')+'">'+text+'</div>';
+                empty += '<div class="c-month-empty-cell" style="'+tmp+'"></div>';
+                sMonth.add(1,'d');
+                start++;
             }
-            return html + dates + '</div>' + empty + '</div>';
+            return html + dates + '</div>' + empty + '</div></div>';
         }
         function _buildView(){
             return this.buildMonth();

@@ -38,7 +38,41 @@
     <script type="text/javascript">
         $(document).ready(function(){
             $('#container').calendar({
-                locale:'ISO'
+                locale:'ISO',
+                work:[
+                    {
+                        start:'2015-02-12 9:00',
+                        end:'2015-02-12 16:00',
+                        staff_id:'2',
+                        staff_name:'Alexey',
+                        staff_color:'#F8CD39',
+                        title:'Alexey work'
+                    },
+                    {
+                        start:'2015-02-12 9:00',
+                        end:'2015-02-14 16:00',
+                        staff_id:'3',
+                        staff_name:'Alena',
+                        staff_color:'#E23523',
+                        title:'Alena work'
+                    },
+                    {
+                        start:'2015-03-12 9:00',
+                        end:'2015-03-12 16:00',
+                        staff_id:'4',
+                        staff_name:'Artem',
+                        staff_color:'#F80CE1',
+                        title:'Artem work'
+                    },
+                    {
+                        start:'2015-02-12 17:00',
+                        end:'2015-02-13 16:00',
+                        staff_id:'2',
+                        staff_name:'Alexey',
+                        staff_color:'#F8CD39',
+                        title:'Alexey second work'
+                    },
+                ]
             });
             $('.drag li').draggable();
         });
@@ -46,7 +80,7 @@
     <title>Plugin</title>
 </head>
 <body>
-    <div id="container" style="width: 833px"></div>
+    <div id="container" style="width: 840px"></div>
     <div class="drop"></div>
     <div class="drag">
         <ul>
