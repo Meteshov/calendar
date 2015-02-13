@@ -101,11 +101,13 @@
                     greedy:true,
                     accept:accClass,
                     drop:function(event,ui){
-                        console.log(ui);
                         var elem = ui.draggable[0];
                         if( ! $(elem).hasClass('c-mobile-elem')){
                             var sClass = 'staff-work-'+$(ui.draggable[0]).attr('id');
                             var elemId = $(elem).attr('id');
+                            if((staffs.indexOf(elemId) == -1)){
+                                $(this).addClass('c-timesheet-'+elemId);
+                            }
                             $('.c-timesheet-'+elemId).append('<div class="c-mobile-elem '+sClass+'" style="width:'+headCellWidth+'" id="'+sClass+'"></div>');
                             var offsetTrue = $('.c-month-cell').filter(function(index){
                                 var off = $(this).offset();
