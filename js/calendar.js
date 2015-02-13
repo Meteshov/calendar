@@ -63,20 +63,66 @@
         });
         return staffs;
     }
+    function checkWork(date,workStart,workEnd,view){ //this function return true,if we need add work to layout
+        var start = new moment(workStart);
+        var end = new moment(workEnd);
+        var out = true;
+        switch(view){
+            case 'day':{
+                if((date.hours(20).minutes(0).isBefore(start)) || (date.hours(6).minutes(0).isAfter(end)))
+                    out = false;
+                break;
+            }
+            case 'week':{
+                if((date.endOf('week').hours(20).minutes(0).isBefore(start))||(date.startOf('week').hours(6).minutes(0).isAfter(end)))
+                    out = false;
+                break;
+            }
+            case 'month':{
+                if((date.endOf('month').hours(20).minutes(0).isBefore(start))||(date.startOf('month').hours(6).minutes(0).isAfter(end)))
+                    out = false;
+                break;
+            }
+        }
+        return out;
+    }
+    //TODO::доделать для недельного и дневного видов
+    function calculateWorkLenght(workStart,workEnd,view){
+        var start = moment(workStart);
+        var end = moment(workEnd);
+        var out = '';
+        switch(view){
+            case('day') : {
+                break;
+            }
+            case('week') : {
+                break;
+            }
+            case('month') : {
+                out = (end.date() - start.date() > 0) ? (end.date() - start.date()) : 1;
+                break;
+            }
+        }
+        return out;
+    }
+    function calculateWorkOffset(workStart,view,container){
+        var start = moment(workStart);
+        var offset = '';
+        switch(view){
+            case 'day':{
+                break;
+            }
+            case 'week':{
+                break;
+            }
+            case 'month':{
+                offset = $(container).find('.c-month-cell[data-date="'+start.format('YYYY-MM-DD')+'"]').offset();
+                break;
+            }
+        }
+        return offset;
+    }
     function timeLine(element,options){
-        //functions for calculating views width,cells width,etc
-        function getHeaderWidth(element){
-            return $(element).outerWidth();
-        }
-        function getBodyWidth(element){
-            return $(element).outerWidth();
-        }
-        function calculateViewWidth(bodyWidth,date,view){ //date - moment object
-            var mom = date; //local copy of moment()
-            var daysCount = parseFloat(mom.endOf('month').format('DD'));
-            var cellWidth = Math.round(bodyWidth / daysCount);
-            return cellWidth - 1;
-        }
         //copy options and container
         this._container = element;
         this._options = options;
@@ -84,6 +130,7 @@
         this.date = (this._options.date == '') ? moment() : moment(this._options.date);
         //main render function
         this.render = function(view){
+            var works = this._options.work;
             var head = this.buildHead();
             var body = this.buildBody(this.date,view);
             var page = '<div class="c-container">'+head+body+'</div>';
@@ -104,18 +151,22 @@
                         var elem = ui.draggable[0];
                         if( ! $(elem).hasClass('c-mobile-elem')){
                             var sClass = 'staff-work-'+$(ui.draggable[0]).attr('id');
+                            var sId = 'c-work-'+$(ui.draggable[0]).attr('id')+(parseInt($(this).find('.'+sClass).length)+1);
                             var elemId = $(elem).attr('id');
                             if((staffs.indexOf(elemId) == -1)){
                                 $(this).addClass('c-timesheet-'+elemId);
                             }
-                            $('.c-timesheet-'+elemId).append('<div class="c-mobile-elem '+sClass+'" style="width:'+headCellWidth+'" id="'+sClass+'"></div>');
+                            var workHtml = '<div class="c-mobile-elem '+sClass+
+                                            '" style="width:'+headCellWidth+
+                                            '" id="'+sId+'"></div>';
+                            $('.c-timesheet-'+elemId).append(workHtml);
                             var offsetTrue = $('.c-month-cell').filter(function(index){
                                 var off = $(this).offset();
                                 if(Math.abs(off.left - ui.offset.left) < headCellWidth)
                                     return this; }).offset();
-                            $('.'+sClass).offset({left:(offsetTrue.left + wrapOffset.left +1)});
+                            $('#'+sId).offset({left:(offsetTrue.left + wrapOffset.left +1)});
                             $(elem).remove();
-                            $('.'+sClass).draggable({
+                            $('#'+sId).draggable({
                                 axis:'x',
                                 containment:'parent',
                                 stop:function(event,ui){
@@ -129,16 +180,20 @@
 
                                 },
                                 drag:function(event,ui){
+
                                 }
                             });
-                            $('.'+sClass).resizable({
+                            $('#'+sId).resizable({
                                 grid:[headCellWidth,0],
-                                maxHeight:45
+                                maxHeight:45,
+                                containment:'parent'
                             });
                         }
                     }
                 });
             });
+            /**Add works on layout from options**/
+            var ids = this.addWorks();
             this.bindEvents();
         }
         this.bindEvents = function(){
@@ -182,6 +237,39 @@
             $(body).appendTo(object._container);
             return false;
         } /** Previous day|week|month **/
+        this.addWorks = function(){
+            var works = this._options.work;
+            var ids = [];
+            if(works != ''){
+                for(i=0;i<works.length;i++){
+                    if(checkWork(this.date,works[i].start,works[i].end,cView.current)){
+                        var workDayLength = calculateWorkLenght(works[i].start,works[i].end,cView.current);
+                        var workWidth = parseFloat($(this._container).find('.c-month-cell:first').outerWidth()) * workDayLength;
+                        var workStyle = 'width:'+workWidth+'px;background-color:'+works[i].staff_color;
+                        var worksCount = $(this._container).find('.staff-work-'+works[i].staff_id).length;
+                        var workClass = 'c-mobile-elem staff-work-'+works[i].staff_id;
+                        var workId = 'c-work-'+works[i].staff_id+(worksCount++);
+                        var workHtml ='<div id="'+workId+'" class="'+workClass+'" style="'+workStyle+'"></div>';
+                        var workOffset = calculateWorkOffset(works[i].start,cView.current,this._container);
+                        $(this._container).find('.c-timesheet-'+works[i].staff_id).append(workHtml);
+                        console.log(workOffset);
+                        console.log($(this._container).find('#'+workId).attr('style'));
+                        $(this._container).find('#'+workId).css({
+                            left:workOffset.left+'px',
+                            position:'relative'
+                        });
+                        console.log($(this._container).find('#'+workId).attr('style'));
+                        ids.push(workId);
+                    }
+                }
+            }
+            return ids;
+        }
+        this.makeDraggableWorks = function(ids,container){
+            ids.forEach(function(el,i){
+                $(container).find('#'+el).draggable();
+            });
+        }
         this.buildHead = _buildHead;
         this.buildBody = _buildBody;
         function _buildHead(){

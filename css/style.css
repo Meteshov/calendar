@@ -115,10 +115,6 @@
  }
 .c-month-empty-cell{
     display: inline-block;
-    height: 100%;
-    /*border-bottom: 1px solid black;
-    border-top: 1px solid black;
-    border-left: 1px solid black;*/
 }
 .c-month-empty:last-child{
     /*border-right: 1px solid black;*/
