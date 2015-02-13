@@ -14,7 +14,6 @@
         minStep:'15',
         dayStart:'6',
         dayEnd:'20',
-        acceptDragClass:'.take-me',//for draggable elements
         buttons:true, // show month week day
         navButtons:true //show next prev btns
     }
@@ -56,6 +55,14 @@
 
         return res;
     }
+    function getAllStaffsIds(works){
+        var staffs = [];
+        works.forEach(function(elem){
+            if(staffs.indexOf(elem.staff_id)== -1)
+                staffs.push(elem.staff_id);
+        });
+        return staffs;
+    }
     function timeLine(element,options){
         //functions for calculating views width,cells width,etc
         function getHeaderWidth(element){
@@ -70,14 +77,6 @@
             var cellWidth = Math.round(bodyWidth / daysCount);
             return cellWidth - 1;
         }
-        function getAllStaffsIds(works){
-            var staffs = [];
-            works.forEach(function(elem){
-                if(staffs.indexOf(elem.staff_id)== -1)
-                    staffs.push(elem.staff_id);
-            });
-            return staffs;
-        }
         //copy options and container
         this._container = element;
         this._options = options;
@@ -91,45 +90,52 @@
             $(page).appendTo(this._container);
             var headCellWidth = $(this._container).find('.c-month-cell:first').outerWidth();
             var wrapOffset = $(this._container).offset();
-            var staffsTimeSheets = addWorks(this._container,this._options.work);
-            $(staffsTimeSheets).appendTo($(this._container).find('div.c-month-empty'));
-            $(this._container).find('div.c-month-empty').droppable({
-                greedy:true,
-                accept:this._options.acceptDragClass,
-                drop:function(event,ui){
-                    var elem = ui.draggable[0];
-                    if( ! $(elem).hasClass('c-mobile-elem')){
-                        var sClass = 'staff-'+$(ui.draggable[0]).attr('id');
-                        $('.c-month-empty').append('<div class="c-mobile-elem '+sClass+'" style="width:'+headCellWidth+'" id="'+sClass+'"></div>');
-                        //TODO::Придумать более универсальные методы для подсчета,пока что при ширине в 833пх некорректно работает
-                        var offsetTrue = $('.c-month-cell').filter(function(index){
-                            var off = $(this).offset();
-                            if(Math.abs(off.left - ui.offset.left) < headCellWidth)
-                                return this; }).offset();
-                        $('.'+sClass).offset({left:(offsetTrue.left + wrapOffset.left +1)});
-                        $(elem).remove();
-                        $('.'+sClass).draggable({
-                            axis:'x',
-                            containment:'parent',
-                            stop:function(event,ui){
-                                var originalWidth = $(ui.helper[0]).outerWidth();
-                                //TODO:: Предотвратить Наложения элементов друг на друга
-                                var offsetTrue = $('.c-month-cell').filter(function(index){
-                                    var off = $(this).offset();
-                                    if(Math.abs(off.left - ui.offset.left) < (headCellWidth/2)+1)
-                                        return this; }).offset();
-                                $(this).offset({left:(offsetTrue.left)});
+            var staffs = getAllStaffsIds(this._options.work);
+            for (i=0; i<staffs.length;i++){
 
-                            },
-                            drag:function(event,ui){
-                            }
-                        });
-                        $('.'+sClass).resizable({
-                            grid:[headCellWidth+headDotWidth,0],
-                            maxHeight:45
-                        });
+            }
+            $(this._container).find('div.c-month-empty').each(function(){
+                var divId = $(this).attr('class').split(' ')[1];
+                var accClass = (typeof divId == 'undefined') ? '*' : '.work-'+divId.split('-')[2];
+                $(this).droppable({
+                    greedy:true,
+                    accept:accClass,
+                    drop:function(event,ui){
+                        console.log(ui);
+                        var elem = ui.draggable[0];
+                        if( ! $(elem).hasClass('c-mobile-elem')){
+                            var sClass = 'staff-work-'+$(ui.draggable[0]).attr('id');
+                            var elemId = $(elem).attr('id');
+                            $('.c-timesheet-'+elemId).append('<div class="c-mobile-elem '+sClass+'" style="width:'+headCellWidth+'" id="'+sClass+'"></div>');
+                            var offsetTrue = $('.c-month-cell').filter(function(index){
+                                var off = $(this).offset();
+                                if(Math.abs(off.left - ui.offset.left) < headCellWidth)
+                                    return this; }).offset();
+                            $('.'+sClass).offset({left:(offsetTrue.left + wrapOffset.left +1)});
+                            $(elem).remove();
+                            $('.'+sClass).draggable({
+                                axis:'x',
+                                containment:'parent',
+                                stop:function(event,ui){
+                                    var originalWidth = $(ui.helper[0]).outerWidth();
+                                    //TODO:: Предотвратить Наложения элементов друг на друга
+                                    var offsetTrue = $('.c-month-cell').filter(function(index){
+                                        var off = $(this).offset();
+                                        if(Math.abs(off.left - ui.offset.left) < (headCellWidth/2)+1)
+                                            return this; }).offset();
+                                    $(this).offset({left:(offsetTrue.left)});
+
+                                },
+                                drag:function(event,ui){
+                                }
+                            });
+                            $('.'+sClass).resizable({
+                                grid:[headCellWidth,0],
+                                maxHeight:45
+                            });
+                        }
                     }
-                }
+                });
             });
             this.bindEvents();
         }
@@ -203,7 +209,7 @@
                     break;
                 }
                 case 'month' :{
-                    var month = new monthView(date,'ISO');
+                    var month = new monthView(date,'ISO',this._options.work);
                     html = month.buildMonthView();
                     break;
                 }
@@ -268,11 +274,12 @@
             return (html + cWeek + '</div></div>');
         };
     }
-    function monthView(date,iso){ /**date is a moment() object**/
+    function monthView(date,iso,works){ /**date is a moment() object**/
         this.date = date;
         this.iso = iso;
         this.buildMonthView = _buildView;
         this.buildMonth = _buildMonth;
+        this.works = works;
         function _buildMonth(){
             var monthNumber = this.date.month(); //needle month number
             var html = '<div class="c-month-wrap"><div class="c-month-cells-wrap"><div class="c-month-head">';
@@ -280,28 +287,32 @@
             var eMonth = moment().month(monthNumber).endOf('month');
             //var dayWidth = (1/(Math.floor(parseInt(eMonth.format('D'))/2) +1))*100; //width for day cell
             var dayWidth = (1/(Math.floor(parseInt(eMonth.format('D')))))*100;
-            //var dotHtml = '<div class="c-dot" style = "width:'+dotWidth+'%">.</div>';
-            var empty = '<div class="c-month-empty c-staff-default">';
+            var staffsIds = getAllStaffsIds(this.works);
+            var staffsTimesheetsHtml = [];
+            var staffHtml = '';
+            var empty = '<div class="c-month-empty">';
             var dates = '';
-            var style = 'width:'+dayWidth+'%';
-            var tmp = 'width:'+(dayWidth)+'%';
+            var style = 'width:'+dayWidth+'%;';
+            var tmp = 'width:'+(dayWidth)+'%;';
             var start = 1;
+            for(i = 0;i < staffsIds.length; i++){
+                staffsTimesheetsHtml[i] = '<div class="c-month-empty c-timesheet-'+staffsIds[i]+'">';
+            }
             while(sMonth.format('YYYY-MM-DD') <= eMonth.format('YYYY-MM-DD')){
-                /*if(dates.length != 0)
-                    dates += dotHtml+'<div class="c-month-cell" style="'+style+'" data-date="'+sMonth.format('YYYY-MM-DD')+'">'+sMonth.format('D')+'</div>';
-                else
-                    dates += '<div class="c-month-cell" style="'+style+'" data-date="'+sMonth.format('YYYY-MM-DD')+'">'+sMonth.format('D')+'</div>';
-                if((parseInt(eMonth.format('D')) - parseInt(sMonth.format('D'))) == 1)
-                    sMonth.add(1,'d');
-                else
-                    sMonth.add(2,'d');*/
                 var text = (start % 2 != 0) ? sMonth.format('D') : '.';
                 dates += '<div class="c-month-cell" style="'+style+'" data-date="'+sMonth.format('YYYY-MM-DD')+'">'+text+'</div>';
                 empty += '<div class="c-month-empty-cell" style="'+tmp+'"></div>';
+                for(i = 0;i < staffsIds.length; i++){
+                    staffsTimesheetsHtml[i] += '<div class="c-month-empty-cell c-timesheet-cell-'+staffsIds[i]+'" style="'+tmp+'"></div>';
+                }
                 sMonth.add(1,'d');
                 start++;
             }
-            return html + dates + '</div>' + empty + '</div></div>';
+            for(i = 0;i < staffsIds.length; i++){
+                staffsTimesheetsHtml[i] += '</div>';
+                staffHtml+=staffsTimesheetsHtml[i];
+            }
+            return html + dates + '</div>' + empty + '</div>'+staffHtml+'</div>';
         }
         function _buildView(){
             return this.buildMonth();
